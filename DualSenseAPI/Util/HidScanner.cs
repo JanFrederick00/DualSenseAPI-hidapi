@@ -1,8 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using HidApi;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-
-using Device.Net;
-using Hid.Net.Windows;
 
 namespace DualSenseAPI.Util
 {
@@ -11,7 +10,7 @@ namespace DualSenseAPI.Util
     /// </summary>
     internal class HidScanner
     {
-        private readonly IDeviceFactory hidFactory;
+        //private readonly  IDeviceFactory hidFactory;
 
         private static HidScanner? _instance = null;
         /// <summary>
@@ -31,18 +30,18 @@ namespace DualSenseAPI.Util
 
         private HidScanner()
         {
-            hidFactory = new FilterDeviceDefinition(1356, 3302, label: "DualSense").CreateWindowsHidDeviceFactory();
         }
 
         /// <summary>
         /// Lists connected devices.
         /// </summary>
         /// <returns>An enumerable of connected devices.</returns>
-        public IEnumerable<ConnectedDeviceDefinition> ListDevices()
+        public IEnumerable<HidApi.DeviceInfo> ListDevices()
         {
-            Task<IEnumerable<ConnectedDeviceDefinition>> scannerTask = hidFactory.GetConnectedDeviceDefinitionsAsync();
-            scannerTask.Wait();
-            return scannerTask.Result;
+            HidApi.Hid.Init();
+            var devices = HidApi.Hid.Enumerate(1356, 3302);
+
+            return devices;
         }
 
         /// <summary>
@@ -50,11 +49,9 @@ namespace DualSenseAPI.Util
         /// </summary>
         /// <param name="deviceDefinition">The information for the connected device.</param>
         /// <returns>The actual device.</returns>
-        public IDevice GetConnectedDevice(ConnectedDeviceDefinition deviceDefinition)
+        public Device GetConnectedDevice(DeviceInfo deviceDefinition)
         {
-            Task<IDevice> connectTask = hidFactory.GetDeviceAsync(deviceDefinition);
-            connectTask.Wait();
-            return connectTask.Result;
+            return deviceDefinition.ConnectToDevice();
         }
     }
 }

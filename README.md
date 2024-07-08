@@ -1,3 +1,10 @@
+# DualSenseAPI - hidapi
+
+This is a fork of https://github.com/BadMagic100/DualSenseAPI which uses https://github.com/libusb/hidapi via https://github.com/badcel/HidApi.Net to work on other Platforms than Windows.
+
+You will need to install the HidApi-library on your platform.
+On Windows you will need to add the file `hidapi.dll` into your project's bin folder.
+
 # DualSenseAPI
 
 ![docs workflow status](https://github.com/BadMagic100/DualSenseAPI/actions/workflows/github-pages.yml/badge.svg)

@@ -1,4 +1,4 @@
-﻿using Device.Net;
+﻿
 using DualSenseAPI.State;
 using DualSenseAPI.Util;
 using System;
@@ -16,7 +16,7 @@ namespace DualSenseAPI
     public class DualSense
     {
         // IO parameters
-        private readonly IDevice underlyingDevice;
+        private readonly HidApi.Device underlyingDevice;
         private readonly int? readBufferSize;
         private readonly int? writeBufferSize;
 
@@ -62,19 +62,21 @@ namespace DualSenseAPI
         /// Private constructor for <see cref="EnumerateControllers"/>.
         /// </summary>
         /// <param name="underlyingDevice">The underlying low-level device.</param>
-        /// <param name="readBufferSize">The device's declared read buffer size.</param>
-        /// <param name="writeBufferSize">The device's declared write buffer size.</param>
-        private DualSense(IDevice underlyingDevice, int? readBufferSize, int? writeBufferSize)
+        private DualSense(HidApi.Device underlyingDevice, HidApi.BusType busType)
         {
             this.underlyingDevice = underlyingDevice;
-            this.readBufferSize = readBufferSize;
-            this.writeBufferSize = writeBufferSize;
-            IoMode = readBufferSize switch
+            switch (busType)
             {
-                64 => IoMode.USB,
-                78 => IoMode.Bluetooth,
-                _ => IoMode.Unknown
-            };
+                case HidApi.BusType.Usb:
+                    readBufferSize = writeBufferSize = 64;
+                    IoMode = IoMode.USB;
+                    break;
+                case HidApi.BusType.Bluetooth:
+                    readBufferSize = writeBufferSize = 78;
+                    IoMode = IoMode.Bluetooth;
+                    break;
+            }
+
             if (IoMode == IoMode.Unknown)
             {
                 throw new InvalidOperationException("Can't initialize device - supported IO modes are USB and Bluetooth.");
@@ -86,10 +88,10 @@ namespace DualSenseAPI
         /// </summary>
         public void Acquire()
         {
-            if (!underlyingDevice.IsInitialized)
-            {
-                underlyingDevice.InitializeAsync().Wait();
-            }
+            //if (!underlyingDevice.IsInitialized)
+            //{
+            //    underlyingDevice.InitializeAsync().Wait();
+            //}
         }
 
         /// <summary>
@@ -97,25 +99,28 @@ namespace DualSenseAPI
         /// </summary>
         public void Release()
         {
-            if (underlyingDevice.IsInitialized)
-            {
-                underlyingDevice.Close();
-            }
+            //if (underlyingDevice.IsInitialized)
+            //{
+            //    underlyingDevice.Close();
+            //}
         }
 
         private async Task<DualSenseInputState> ReadWriteOnceAsync()
         {
-            TransferResult result = await underlyingDevice.WriteAndReadAsync(GetOutputDataBytes());
-            if (result.BytesTransferred == readBufferSize)
+            var outputData = GetOutputDataBytes();
+            underlyingDevice.Write(outputData);
+            var read = underlyingDevice.Read(9999999).ToArray();
+            //TransferResult result = await underlyingDevice.WriteAndReadAsync(GetOutputDataBytes());
+            if (read.Length == readBufferSize)
             {
                 // this can effectively determine which input packet you've recieved, USB or bluetooth, and offset by the right amount
-                int offset = result.Data[0] switch
+                int offset = read[0] switch
                 {
                     0x01 => 1, // USB packet flag
                     0x31 => 2, // Bluetooth packet flag
                     _ => 0
                 };
-                return new DualSenseInputState(result.Data.Skip(offset).ToArray(), IoMode, JoystickDeadZone);
+                return new DualSenseInputState(read.Skip(offset).ToArray(), IoMode, JoystickDeadZone);
             }
             else
             {
@@ -147,7 +152,7 @@ namespace DualSenseAPI
             if (OnButtonStateChanged != null)
             {
                 DualSenseInputStateButtonDelta delta = new DualSenseInputStateButtonDelta(prevState, nextState);
-                if (delta.HasChanges) 
+                if (delta.HasChanges)
                 {
                     OnButtonStateChanged.Invoke(this, delta);
                 }
@@ -238,10 +243,11 @@ namespace DualSenseAPI
         /// <returns>Enumerable of available controllers.</returns>
         public static IEnumerable<DualSense> EnumerateControllers()
         {
-            foreach (ConnectedDeviceDefinition deviceDefinition in HidScanner.Instance.ListDevices())
+            foreach (var deviceDefinition in HidScanner.Instance.ListDevices())
             {
-                IDevice device = HidScanner.Instance.GetConnectedDevice(deviceDefinition);
-                yield return new DualSense(device, deviceDefinition.ReadBufferSize, deviceDefinition.WriteBufferSize);
+                var device = HidScanner.Instance.GetConnectedDevice(deviceDefinition);
+
+                yield return new DualSense(device, deviceDefinition.BusType);
             }
         }
     }

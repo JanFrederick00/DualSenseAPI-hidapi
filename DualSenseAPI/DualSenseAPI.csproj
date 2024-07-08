@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
     <Authors>The-Demp</Authors>
     <Company />
@@ -75,8 +75,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Device.Net" Version="4.2.1" />
-    <PackageReference Include="Hid.Net" Version="4.2.1" />
+    <PackageReference Include="HidApi.Net" Version="1.0.4" />
     <PackageReference Include="System.Reactive" Version="5.0.0" />
   </ItemGroup>
 
@@ -86,7 +85,7 @@
   </ItemGroup>
 
 	<ItemGroup>
-		<Content Include="..\README.md" Pack="true" PackagePath="\"/>
+		<Content Include="..\README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 </Project>
